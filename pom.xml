@@ -6,7 +6,7 @@
 
     <groupId>me.toxo.sftpuploader</groupId>
     <artifactId>sftpuploader-maven-plugin</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>SFTP Auto Uploader Maven Plugin</name>
@@ -18,6 +18,17 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>redserv-repo</id>
+            <url>https://repo.redserv.net/repository/maven-snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>redserv-repo</id>
+            <url>https://repo.redserv.net/repository/maven-releases</url>
+        </repository>
+    </distributionManagement>
 
     <!-- maven dependencies -->
     <dependencies>
@@ -56,6 +67,25 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.5.1</version>
+                    <executions>
+                        <execution>
+                            <id>default-deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <serverId>redserv-repo</serverId>
+                        <nexusUrl>https://repo.redserv.net/</nexusUrl>
+                        <skipStaging>true</skipStaging>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
