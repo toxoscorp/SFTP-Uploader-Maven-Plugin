@@ -18,41 +18,50 @@ public class SftpUploaderMojo extends AbstractMojo {
     @Parameter(property = "host", required = true)
     String host;
     @Parameter(property = "user", required = true)
-    String username;
+    String user;
     @Parameter(property = "password", required = true)
     String password;
     @Parameter(property = "port", defaultValue = "22", required = true)
     String port;
-    @Parameter(property = "remotePath", required = true)
-    String remotePath;
-    @Parameter(property = "localPath", required = false)
-    String localPath;
+    @Parameter(property = "remotepath", required = true)
+    String remotepath;
+    @Parameter(property = "buildpath")
+    String buildpath;
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     MavenProject project;
-    @Parameter(property = "FilePerms", required = false)
-    String permissions;
-    @Parameter(property = "FileGroupId", required = false)
-    String fileGroupId;
+    @Parameter(property = "fileperms")
+    String fileperms;
+    @Parameter(property = "filegroupid")
+    String filegroupid;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
 //        getLog().info("Uploading to " + host + ":" + port + " as " + username);
-        if (localPath == null || localPath.isEmpty()) {
-            this.localPath = this.project.getBuild().getDirectory() + "\\" + this.project.getBuild().getFinalName() + ".jar";
+        if (buildpath == null || buildpath.isEmpty()) {
+            this.buildpath = this.project.getBuild().getDirectory() + "\\" + this.project.getBuild().getFinalName() + ".jar";
         }
-        getLog().info("Uploading from " + localPath);
-        getLog().info("Uploading to " + remotePath);
+        getLog().info("Uploading from " + buildpath);
+        getLog().info("Uploading to " + this.remotepath);
 
         try {
+            if (this.fileperms != null) {
+                Integer.parseInt(this.fileperms, 8);
+            }
+            if (this.filegroupid != null) {
+                Integer.parseInt(this.filegroupid);
+            }
+
             SSHClient client = connect();
             SFTPClient sftpClient = client.newSFTPClient();
 
-            sftpClient.put(this.localPath, this.remotePath);
+            sftpClient.put(this.buildpath, this.remotepath);
 
-            if (this.permissions != null && !this.permissions.isEmpty() && isInteger(this.permissions)) {
-                sftpClient.chmod(this.remotePath, Integer.parseInt(this.permissions, 8));
+            if (this.fileperms != null) {
+                sftpClient.chmod(this.remotepath, Integer.parseInt(this.fileperms, 8));
+                getLog().info("Set permissions to " + this.fileperms);
             }
-            if (this.fileGroupId != null && !this.fileGroupId.isEmpty() && isInteger(this.fileGroupId)) {
-                sftpClient.chgrp(this.remotePath, Integer.parseInt(this.fileGroupId));
+            if (this.filegroupid != null) {
+                sftpClient.chgrp(this.remotepath, Integer.parseInt(this.filegroupid));
+                getLog().info("Set group id to " + this.filegroupid);
             }
 
             getLog().info("Upload complete");
@@ -61,6 +70,8 @@ public class SftpUploaderMojo extends AbstractMojo {
             getLog().info("Disconnected");
         } catch (IOException e) {
             getLog().error("Error Uploading", e);
+        } catch (NumberFormatException e) {
+            throw new MojoExecutionException("Error parsing permissions or group id", e);
         }
     }
 
@@ -68,16 +79,7 @@ public class SftpUploaderMojo extends AbstractMojo {
         SSHClient client = new SSHClient();
         client.addHostKeyVerifier(new PromiscuousVerifier());
         client.connect(this.host, Integer.parseInt(this.port));
-        client.authPassword(this.username, this.password);
+        client.authPassword(this.user, this.password);
         return client;
-    }
-
-    private boolean isInteger(String s) {
-        try {
-            Integer.parseInt(s);
-        } catch(NumberFormatException e) {
-            return false;
-        }
-        return true;
     }
 }
