@@ -29,6 +29,10 @@ public class SftpUploaderMojo extends AbstractMojo {
     String localPath;
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     MavenProject project;
+    @Parameter(property = "FilePerms", required = false)
+    String permissions;
+    @Parameter(property = "FileGroupId", required = false)
+    String fileGroupId;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
 //        getLog().info("Uploading to " + host + ":" + port + " as " + username);
@@ -43,8 +47,18 @@ public class SftpUploaderMojo extends AbstractMojo {
             SFTPClient sftpClient = client.newSFTPClient();
 
             sftpClient.put(this.localPath, this.remotePath);
+
+            if (this.permissions != null && !this.permissions.isEmpty() && isInteger(this.permissions)) {
+                sftpClient.chmod(this.remotePath, Integer.parseInt(this.permissions, 8));
+            }
+            if (this.fileGroupId != null && !this.fileGroupId.isEmpty() && isInteger(this.fileGroupId)) {
+                sftpClient.chgrp(this.remotePath, Integer.parseInt(this.fileGroupId));
+            }
+
+            getLog().info("Upload complete");
             sftpClient.close();
             client.disconnect();
+            getLog().info("Disconnected");
         } catch (IOException e) {
             getLog().error("Error Uploading", e);
         }
@@ -56,5 +70,14 @@ public class SftpUploaderMojo extends AbstractMojo {
         client.connect(this.host, Integer.parseInt(this.port));
         client.authPassword(this.username, this.password);
         return client;
+    }
+
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+        } catch(NumberFormatException e) {
+            return false;
+        }
+        return true;
     }
 }
